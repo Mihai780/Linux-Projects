@@ -57,14 +57,14 @@ void initBoard() {
     for (int i = 0; i < BOARD_SIZE; i++)
         for (int j = 0; j < BOARD_SIZE; j++)
             board[i][j] = EMPTY;
-    // Plasare piese pentru jucătorul 2 (partea de sus – rândurile 0 şi 1 pe pătratele "maro")
+    // Plasare piese pentru jucatorul 2 (partea de sus – randurile 0 si 1 pe patratele "maro")
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             if ((i + j) % 2 == 1)
                 board[i][j] = PLAYER2;
         }
     }
-    // Plasare piese pentru jucătorul 1 (partea de jos – rândurile 6 şi 7 pe pătratele "maro")
+    // Plasare piese pentru jucatorul 1 (partea de jos – randurile 6 si 7 pe patratele "maro")
     for (int i = BOARD_SIZE - 2; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             if ((i + j) % 2 == 1)
@@ -117,7 +117,7 @@ void drawBoard() {
             }
         }
     }
-    // Dacă se trage o piesa, o desenam la pozitia curenta de drag
+    // Daca se trage o piesa, o desenam la pozitia curenta de drag
     if (dragging) {
         int radius = SQUARE_SIZE/2 - 10;
         int cx = currentDragX;
@@ -127,7 +127,7 @@ void drawBoard() {
         else if (dragPiece == PLAYER2 || dragPiece == KING2)
             XSetForeground(display, gc, 0x000000);
         XFillArc(display, window, gc, cx - radius, cy - radius, radius*2, radius*2, 0, 360*64);
-        // Dacă piesa în drag este damă, desenăm și indiciul interior
+        // Daca piesa in drag este dama, desenam si indiciul interior
         if (dragPiece == KING1 || dragPiece == KING2) {
             int innerRadius = radius / 2;
             XSetForeground(display, gc, 0xFFFF00);
@@ -144,7 +144,7 @@ void drawBoard() {
     }
     // Indicatorul de mutare
     string turnText = "Randul jucatorului: ";
-    turnText += (currentPlayer == PLAYER1 || currentPlayer == KING1) ? "PLAYER 1" : "PLAYER 2";
+    turnText += (currentPlayer == PLAYER1) ? "PLAYER 1" : "PLAYER 2";
     XSetForeground(display, gc, 0x000000);
     XDrawString(display, window, gc, BOARD_OFFSET_X, BOARD_OFFSET_Y - 20, turnText.c_str(), turnText.length());
     
@@ -172,30 +172,30 @@ bool onSaveButton(int x, int y) {
     return (x >= btnX && x <= btnX + btnWidth && y >= btnY && y <= btnY + btnHeight);
 }
 
-// Validare mutare: verifică dacă o mutare de la (fromRow,fromCol) la (toRow,toCol)
-// este validă pentru piesa player. Dacă este o capturare, se setează isCapture = true
-// si se returnează coordonatele piesei capturate.
+// Validare mutare: verifica daca o mutare de la (fromRow,fromCol) la (toRow,toCol)
+// este valida pentru piesa player. Daca este o capturare, se setează isCapture = true
+// si se returneaza coordonatele piesei capturate.
 bool validMove(int fromRow, int fromCol, int toRow, int toCol, int player, bool &isCapture, int &capRow, int &capCol) {
     isCapture = false;
-    // Verificăm dacă destinația este validă (în tablă și liberă)
+    // Verificam daca destinatia este valida
     if (toRow < 0 || toRow >= BOARD_SIZE || toCol < 0 || toCol >= BOARD_SIZE)
         return false;
     if (board[toRow][toCol] != EMPTY)
         return false;
-    // Se permite mutarea doar pe pătratele "colorate"
+    // Se permite mutarea doar pe patratele "colorate"
     if ((toRow + toCol) % 2 == 0)
         return false;
     
     int dr = toRow - fromRow;
     int dc = toCol - fromCol;
     
-    // Pentru "men" (bărbați)
+    // Pentru "men" 
     if (player == PLAYER1 || player == PLAYER2) {
         if (player == PLAYER1) {
-            // Mutare simplă: 1 pătrat în diagonală înainte
+            // Mutare simpla: 1 patrat in diagonala înainte
             if (dr == -1 && abs(dc) == 1)
                 return true;
-            // Capturare: sare două pătrate în diagonală; piesa intermediară trebuie să fie a inamicului
+            // Capturare: sare doua patrate in diagonala, piesa intermediara trebuie sa fie a inamicului
             if (dr == -2 && abs(dc) == 2) {
                 int midRow = fromRow - 1;
                 int midCol = fromCol + dc/2;
@@ -221,12 +221,12 @@ bool validMove(int fromRow, int fromCol, int toRow, int toCol, int player, bool 
             }
         }
     }
-    // Pentru dame (king)
+    // Pentru dame
     if (player == KING1 || player == KING2) {
-        // Permitem mutări simple în toate direcțiile cu un pas
+        // Permitem mutari simple in toate directiile cu un pas
         if (abs(dr) == 1 && abs(dc) == 1)
             return true;
-        // Capturare cu un salt de două pătrate în orice direcție
+        // Capturare cu un salt de doua patrate in orice directie
         if (abs(dr) == 2 && abs(dc) == 2) {
             int midRow = fromRow + dr/2;
             int midCol = fromCol + dc/2;
@@ -247,20 +247,34 @@ bool validMove(int fromRow, int fromCol, int toRow, int toCol, int player, bool 
     return false;
 }
 
-// Verifică dacă piesa de la (row, col) are posibilitatea unei capturări
 bool hasCaptureMove(int row, int col, int player) {
     bool dummy;
     int capRow, capCol;
-    int dr = (player == PLAYER1 || player == KING1) ? -2 : 2;
-    int dcs[2] = {-2, 2};
-    for (int i = 0; i < 2; i++) {
-        int newRow = row + dr;
-        int newCol = col + dcs[i];
-        if (validMove(row, col, newRow, newCol, player, dummy, capRow, capCol) && dummy)
-            return true;
+
+    if (player == KING1 || player == KING2) {
+        // Pentru dame, verificam toate cele patru directii cu un salt de două patrate.
+        int drs[4] = {-2, -2, 2, 2};
+        int dcs[4] = {-2, 2, -2, 2};
+        for (int k = 0; k < 4; k++) {
+            int newRow = row + drs[k];
+            int newCol = col + dcs[k];
+            if (validMove(row, col, newRow, newCol, player, dummy, capRow, capCol) && dummy)
+                return true;
+        }
+    } else {
+        // Pentru piesele normale (men), verificam doar direcția „inainte”
+        int dr = (player == PLAYER1) ? -2 : 2;
+        int dcs[2] = {-2, 2};
+        for (int i = 0; i < 2; i++) {
+            int newRow = row + dr;
+            int newCol = col + dcs[i];
+            if (validMove(row, col, newRow, newCol, player, dummy, capRow, capCol) && dummy)
+                return true;
+        }
     }
     return false;
 }
+
 
 // Verifica daca jucatorul poate efectua cel putin o mutare
 bool hasPieces(int player) {
@@ -285,7 +299,7 @@ bool hasPieces(int player) {
 
 
 void switchTurn() {
-    currentPlayer = (currentPlayer == PLAYER1 || currentPlayer == KING1) ? PLAYER2 : PLAYER1;
+    currentPlayer = (currentPlayer == PLAYER1) ? PLAYER2 : PLAYER1;
     multiCaptureActive = false;
     activePieceRow = -1;
     activePieceCol = -1;
@@ -317,61 +331,121 @@ void computerMove() {
     vector<Move> validMoves;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            if (board[i][j] == currentPlayer) {
-                int drSimple = (currentPlayer == PLAYER1 || currentPlayer == KING1) ? -1 : 1;
-                int drCapture = (currentPlayer == PLAYER1 || currentPlayer == KING1) ? -2 : 2;
-                int dcs[2] = {-1, 1};
-                // Mutari simple
-                for (int k = 0; k < 2; k++) {
-                    int newRow = i + drSimple;
-                    int newCol = j + dcs[k];
-                    bool cap;
-                    int dum1, dum2;
-                    if (validMove(i, j, newRow, newCol, currentPlayer, cap, dum1, dum2)) {
-                        Move m;
-                        m.fromRow = i;
-                        m.fromCol = j;
-                        m.toRow = newRow;
-                        m.toCol = newCol;
-                        m.capture = false;
-                        validMoves.push_back(m);
+            if ((currentPlayer == PLAYER2) && (board[i][j] == PLAYER2 || board[i][j] == KING2)) {
+                // Pentru piesele normale
+                if (board[i][j] == PLAYER2) {
+                    int drSimple = 1;
+                    int drCapture = 2;
+                    int dcs[2] = {-1, 1};
+                    // Mutari simple
+                    for (int k = 0; k < 2; k++) {
+                        int newRow = i + drSimple;
+                        int newCol = j + dcs[k];
+                        bool cap;
+                        int dum1, dum2;
+                        if (validMove(i, j, newRow, newCol, currentPlayer, cap, dum1, dum2)) {
+                            Move m;
+                            m.fromRow = i;
+                            m.fromCol = j;
+                            m.toRow = newRow;
+                            m.toCol = newCol;
+                            m.capture = cap;
+                            validMoves.push_back(m);
+                        }
+                    }
+                    // Mutari de capturare pentru piese normale
+                    for (int k = 0; k < 2; k++) {
+                        int newRow = i + drCapture;
+                        int newCol = j + 2*dcs[k];
+                        bool cap;
+                        int capRow, capCol;
+                        if (validMove(i, j, newRow, newCol, currentPlayer, cap, capRow, capCol) && cap) {
+                            Move m;
+                            m.fromRow = i;
+                            m.fromCol = j;
+                            m.toRow = newRow;
+                            m.toCol = newCol;
+                            m.capture = true;
+                            validMoves.push_back(m);
+                        }
                     }
                 }
-                // Mutari de capturare
-                for (int k = 0; k < 2; k++) {
-                    int newRow = i + drCapture;
-                    int newCol = j + 2*dcs[k];
-                    bool cap;
-                    int capRow, capCol;
-                    if (validMove(i, j, newRow, newCol, currentPlayer, cap, capRow, capCol) && cap) {
-                        Move m;
-                        m.fromRow = i;
-                        m.fromCol = j;
-                        m.toRow = newRow;
-                        m.toCol = newCol;
-                        m.capture = true;
-                        validMoves.push_back(m);
+                // Pentru dame
+                if (board[i][j] == KING2) {
+                    int drsSimple[4] = {-1, -1, 1, 1};
+                    int dcsSimple[4] = {-1, 1, -1, 1};
+                    for (int k = 0; k < 4; k++) {
+                        int newRow = i + drsSimple[k];
+                        int newCol = j + dcsSimple[k];
+                        bool cap;
+                        int dum1, dum2;
+                        if (validMove(i, j, newRow, newCol, KING2, cap, dum1, dum2)) {
+                            Move m;
+                            m.fromRow = i;
+                            m.fromCol = j;
+                            m.toRow = newRow;
+                            m.toCol = newCol;
+                            m.capture = cap;
+                            validMoves.push_back(m);
+                        }
+                    }
+                    // Mutari de capturare pentru dame in toate cele patru directii
+                    int drsCapture[4] = {-2, -2, 2, 2};
+                    int dcsCapture[4] = {-2, 2, -2, 2};
+                    for (int k = 0; k < 4; k++) {
+                        int newRow = i + drsCapture[k];
+                        int newCol = j + dcsCapture[k];
+                        bool cap;
+                        int capRow, capCol;
+                        if (validMove(i, j, newRow, newCol, KING2, cap, capRow, capCol) && cap) {
+                            Move m;
+                            m.fromRow = i;
+                            m.fromCol = j;
+                            m.toRow = newRow;
+                            m.toCol = newCol;
+                            m.capture = true;
+                            validMoves.push_back(m);
+                        }
                     }
                 }
             }
         }
     }
+    
+    // Daca exista cel putin o mutare de capturare, filtram lista pentru a pastra numai capturarile
+    vector<Move> captureMoves;
+    for (size_t i = 0; i < validMoves.size(); i++) {
+        if (validMoves[i].capture)
+            captureMoves.push_back(validMoves[i]);
+    }
+    if (!captureMoves.empty()) {
+        validMoves = captureMoves;
+    }
+    
     if (validMoves.empty()) return;
+    
     srand(time(NULL));
     int idx = rand() % validMoves.size();
     Move chosen = validMoves[idx];
     bool dummy;
     int capRow, capCol;
+    int pieceType = board[chosen.fromRow][chosen.fromCol];
     if (chosen.capture) {
-        validMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol, currentPlayer, dummy, capRow, capCol);
+        validMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol, pieceType, dummy, capRow, capCol);
         board[capRow][capCol] = EMPTY;
     }
     board[chosen.toRow][chosen.toCol] = board[chosen.fromRow][chosen.fromCol];
     board[chosen.fromRow][chosen.fromCol] = EMPTY;
     movesHistory.push_back(chosen);
-    // Daca după capturare se poate continua, pentru simplitate se execută doar o capturare pe tur
-    if (chosen.capture && hasCaptureMove(chosen.toRow, chosen.toCol, currentPlayer)) {
-        // O extindere ar fi implementarea unei capturari în cascadă
+    
+    // Promovare: daca piesa a ajuns pe ultimul rand pentru calculator (PLAYER2)
+    if (currentPlayer == PLAYER2 && chosen.toRow == BOARD_SIZE - 1 
+        && board[chosen.toRow][chosen.toCol] == PLAYER2) {
+        board[chosen.toRow][chosen.toCol] = KING2;
+    }
+    
+    if (chosen.capture && hasCaptureMove(chosen.toRow, chosen.toCol, board[chosen.toRow][chosen.toCol])) {
+
     } else {
         switchTurn();
     }
@@ -418,7 +492,9 @@ int main() {
                 if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
                     if (board[row][col] == currentPlayer || board[row][col] == (currentPlayer == PLAYER1 ? KING1 : KING2)) {
                         if (multiCaptureActive && (row != activePieceRow || col != activePieceCol))
+                        {
                             continue;
+                        }
                         dragging = true;
                         dragFromRow = row;
                         dragFromCol = col;
@@ -445,12 +521,7 @@ int main() {
                     int capRow, capCol;
                     if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
                         int pieceType;
-                        if (multiCaptureActive)
-                            pieceType = (board[activePieceRow][activePieceCol] == KING1 || board[activePieceRow][activePieceCol] == KING2)
-                                            ? board[activePieceRow][activePieceCol] : currentPlayer;
-                        else
-                            pieceType = (dragPiece == KING1 || dragPiece == KING2) ? dragPiece : currentPlayer;
-                        
+                        pieceType = (dragPiece == KING1 || dragPiece == KING2) ? dragPiece : currentPlayer;
                         if (multiCaptureActive) {
                             if (validMove(activePieceRow, activePieceCol, row, col, pieceType, isCap, capRow, capCol) && isCap)
                                 valid = true;
@@ -478,8 +549,8 @@ int main() {
                             board[capRow][capCol] = EMPTY;
                         }
                         board[row][col] = dragPiece;
-                        // Dacă a fost capturare și se poate continua, intrăm în modul de capturare în cascadă
-                        if (isCap && hasCaptureMove(row, col, currentPlayer))
+                        // Daca a fost capturare si se poate continua, intram in modul de capturare in cascada
+                        if (isCap && hasCaptureMove(row, col, board[row][col]))
                         {
                             multiCaptureActive = true;
                             activePieceRow = row;
@@ -491,7 +562,7 @@ int main() {
                             switchTurn();
                         }
                     } else {
-                        // Mutare invalidă: returnăm piesa la locul inițial
+                        // Mutare invalida: returnam piesa la locul initial
                         if (multiCaptureActive)
                             board[activePieceRow][activePieceCol] = dragPiece;
                         else
@@ -504,12 +575,13 @@ int main() {
             }
         }
         // Daca modul de joc este versus calculator si este randul calculatorului
-        if (vsComputer && (currentPlayer == PLAYER2 || currentPlayer == KING2) && !dragging) {
+        if (vsComputer && currentPlayer == PLAYER2 && !dragging) {
             usleep(300000); // mic delay
             computerMove();
             drawBoard();
         }
-        // Verificare conditii de victorie: dacă unul dintre jucttori nu mai are mutari posibile
+
+        // Verificare conditii de victorie: daca unul dintre jucttori nu mai are mutari posibile
         if (!hasPieces(PLAYER1)) {
             XSetForeground(display, gc, 0x00FF00);
             string winText = "PLAYER 2 castiga!";
