@@ -276,26 +276,66 @@ bool hasCaptureMove(int row, int col, int player) {
 }
 
 
-// Verifica daca jucatorul poate efectua cel putin o mutare
-bool hasPieces(int player) {
+// Verifica daca jucatorul poate efectua cel putin o mutare si daca mai are piese
+bool hasMoves(int player) {
+
+    bool dummyCapture;
+    int dummyCapRow, dummyCapCol;
     if(dragging)
     {
         return true;
     }
-    
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            if (player == PLAYER1) {
-                if (board[i][j] == PLAYER1 || board[i][j] == KING1)
-                    return true;
-            } else if (player == PLAYER2) {
-                if (board[i][j] == PLAYER2 || board[i][j] == KING2)
-                    return true;
+            // Verificam daca piesa apartine jucatorului curent si este normala 
+            if (board[i][j] == player) {
+                int candidates[4][2];
+                if (player == PLAYER1) {
+                    // Pentru PLAYER1, mutarile simple sunt diagonale in sus si posibile capturi
+                    candidates[0][0] = -1; candidates[0][1] = -1;
+                    candidates[1][0] = -1; candidates[1][1] =  1;
+                    candidates[2][0] = -2; candidates[2][1] = -2;
+                    candidates[3][0] = -2; candidates[3][1] =  2;
+                } else { 
+                    // Pentru PLAYER2, mutarile simple sunt diagonale in jos si posibile capturi
+                    candidates[0][0] =  1; candidates[0][1] = -1;
+                    candidates[1][0] =  1; candidates[1][1] =  1;
+                    candidates[2][0] =  2; candidates[2][1] = -2;
+                    candidates[3][0] =  2; candidates[3][1] =  2;
+                }
+                for (int k = 0; k < 4; k++) {
+                    int newRow = i + candidates[k][0];
+                    int newCol = j + candidates[k][1];
+                    if (validMove(i, j, newRow, newCol, player, dummyCapture, dummyCapRow, dummyCapCol)) {
+                        return true;
+                    }
+                }
+            }
+            // Verificam daca piesa este dama a jucatorului curent
+            else if ((player == PLAYER1 && board[i][j] == KING1) ||
+                     (player == PLAYER2 && board[i][j] == KING2)) {
+                int candidates[8][2] = {
+                    {-1, -1}, {-1, 1}, {1, -1}, {1, 1},
+                    {-2, -2}, {-2, 2}, {2, -2}, {2, 2}
+                };
+                int king = (player == PLAYER1 ? KING1 : KING2);
+                for (int k = 0; k < 8; k++) {
+                    int newRow = i + candidates[k][0];
+                    int newCol = j + candidates[k][1];
+                    if (validMove(i, j, newRow, newCol, king, dummyCapture, dummyCapRow, dummyCapCol)) {
+                        return true;
+                    }
+                }
             }
         }
     }
-    return false;
+    if(currentPlayer==player)
+    {
+        return false;
+    }
+    return true;
 }
+
 
 
 void switchTurn() {
@@ -582,14 +622,14 @@ int main() {
         }
 
         // Verificare conditii de victorie: daca unul dintre jucttori nu mai are mutari posibile
-        if (!hasPieces(PLAYER1)) {
+        if (!hasMoves(PLAYER1)) {
             XSetForeground(display, gc, 0x00FF00);
             string winText = "PLAYER 2 castiga!";
             XDrawString(display, window, gc, BOARD_OFFSET_X, 30, winText.c_str(), winText.length());
             XFlush(display);
             break;
         }
-        if (!hasPieces(PLAYER2)) {
+        if (!hasMoves(PLAYER2)) {
             XSetForeground(display, gc, 0x00FF00);
             string winText = "PLAYER 1 castiga!";
             XDrawString(display, window, gc, BOARD_OFFSET_X, 30, winText.c_str(), winText.length());
